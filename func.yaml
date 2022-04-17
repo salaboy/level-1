@@ -4,7 +4,7 @@ namespace: ""
 runtime: go
 registry: ""
 image: docker.io/salaboy/level-1:latest
-imageDigest: sha256:ed51ac79938b56ba55c6a3b77922db895b2d0ed425fcd67ce536ee83f83df282
+imageDigest: sha256:527b9d055883d5007209288a643a1bf7bd610e433755425d8d4badbae696447e
 build: local
 git:
   url: null
@@ -22,7 +22,7 @@ volumes: []
 buildEnvs: []
 envs:
 - name: REDIS_HOST
-  value: 10.200.130.188
+  value: 10.200.130.188:6379
 annotations: {}
 options: {}
 labels: []
