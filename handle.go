@@ -10,14 +10,16 @@ import (
 	"time"
 )
 
-type Questions struct {
-	SessionId string
-	Question1 string
-	Question2 string
-	Question3 string
+type Answers struct {
+	SessionId string `json:"sessionId"`
+	OptionA bool `json:"optionA"`
+	OptionB bool `json:"optionB"`
+	OptionC bool `json:"optionC"`
+	OptionD bool `json:"optionD"`
+	RemainingTime int `json:"remainingTime"`
 }
 
-type Score struct {
+type GameScore struct {
 	SessionId string
 	Time      time.Time
 	Level     string
@@ -44,50 +46,51 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 	})
 
 	points := 0
-	var q Questions
+	var answers Answers
 
 	// Try to decode the request body into the struct. If there is an error,
 	// respond to the client with the error message and a 400 status code.
-	err := json.NewDecoder(req.Body).Decode(&q)
+	err := json.NewDecoder(req.Body).Decode(&answers)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+	fmt.Println("Answers received")
+	fmt.Println(answers)
 
-	if q.Question1 == "42" {
-		points++
-	} else {
-		points--
+	if answers.OptionA == true {
+		points= points + 5
 	}
-	if q.Question2 == "43" {
-		points++
-	} else {
-		points--
+	if answers.OptionB == true {
+		points= points + 3
 	}
-	if q.Question3 == "44" {
-		points++
-	} else {
-		points--
+	if answers.OptionC == true {
+		points= points + 3
+	}
+	if answers.OptionD == true {
+		//you shouldn't get any points ;)
 	}
 
-	var score Score
-	score.Level = "level-1"
-	score.LevelScore = points
-	score.SessionId = q.SessionId
-	score.Time = time.Now()
+	points += answers.RemainingTime
+
+	score := GameScore {
+		SessionId: answers.SessionId,
+		Level: "level-1",
+		LevelScore: points,
+		Time: time.Now(),
+	}
 	scoreJson, err := json.Marshal(score)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = client.RPush("score-" + q.SessionId, string(scoreJson)).Err()
+	err = client.RPush("score-" + answers.SessionId, string(scoreJson)).Err()
 	// if there has been an error setting the value
 	// handle the error
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 
 	gt := GameTime{
 		GameTimeId: "time-" + score.SessionId,
@@ -110,8 +113,7 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-
+	res.Header().Set("Content-Type", "application/json")
 	fmt.Fprintln(res, string(scoreJson))
 
 }
