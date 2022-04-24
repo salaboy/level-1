@@ -5,33 +5,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
 type Answers struct {
-	SessionId string `json:"sessionId"`
-	OptionA bool `json:"optionA"`
-	OptionB bool `json:"optionB"`
-	OptionC bool `json:"optionC"`
-	OptionD bool `json:"optionD"`
-	RemainingTime int `json:"remainingTime"`
+	SessionId     string `json:"sessionId"`
+	OptionA       bool   `json:"optionA"`
+	OptionB       bool   `json:"optionB"`
+	OptionC       bool   `json:"optionC"`
+	OptionD       bool   `json:"optionD"`
+	RemainingTime int    `json:"remainingTime"`
 }
 
 type GameScore struct {
-	SessionId string
-	Time      time.Time
-	Level     string
+	SessionId  string
+	Time       time.Time
+	Level      string
 	LevelScore int
 }
 
-type GameTime struct{
+type GameTime struct {
 	GameTimeId string
-	SessionId string
-	Level string
-	Type string
-	Time      time.Time
+	SessionId  string
+	Level      string
+	Type       string
+	Time       time.Time
 }
 
 var redisHost = os.Getenv("REDIS_HOST") // This should include the port which is most of the time 6379
@@ -52,6 +53,7 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 	// respond to the client with the error message and a 400 status code.
 	err := json.NewDecoder(req.Body).Decode(&answers)
 	if err != nil {
+		log.Println("Error while deserializing Answers: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -59,13 +61,13 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 	fmt.Println(answers)
 
 	if answers.OptionA == true {
-		points= points + 5
+		points = points + 5
 	}
 	if answers.OptionB == true {
-		points= points + 3
+		points = points + 3
 	}
 	if answers.OptionC == true {
-		points= points + 3
+		points = points + 3
 	}
 	if answers.OptionD == true {
 		//you shouldn't get any points ;)
@@ -73,21 +75,23 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 
 	points += answers.RemainingTime
 
-	score := GameScore {
-		SessionId: answers.SessionId,
-		Level: "level-1",
+	score := GameScore{
+		SessionId:  answers.SessionId,
+		Level:      "level-1",
 		LevelScore: points,
-		Time: time.Now(),
+		Time:       time.Now(),
 	}
 	scoreJson, err := json.Marshal(score)
 	if err != nil {
+		log.Println("Error while serializing Score: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = client.RPush("score-" + answers.SessionId, string(scoreJson)).Err()
+	err = client.RPush("score-"+answers.SessionId, string(scoreJson)).Err()
 	// if there has been an error setting the value
 	// handle the error
 	if err != nil {
+		log.Println("Error while pushing Score to Redis: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -102,6 +106,7 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 
 	gameTimeJson, err := json.Marshal(gt)
 	if err != nil {
+		log.Println("Error while serializing GameTime: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -110,6 +115,7 @@ func Handle(ctx context.Context, res http.ResponseWriter, req *http.Request) {
 	// if there has been an error setting the value
 	// handle the error
 	if err != nil {
+		log.Println("Error while pushing GameTime to Redis: ", err)
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
